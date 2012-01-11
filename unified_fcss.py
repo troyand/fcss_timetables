@@ -24,6 +24,7 @@ class Rozklad():
                              u'18.00-19.20']
         self.start_lesson_times = [
                 t.split('-')[0].replace('.', ':') for t in self.lesson_times]
+        self.start_lesson_times[0] = self.start_lesson_times[0].replace(u'8:30', u'08:30')
         self.__text_parts = {
                              'header': [],
                              'footer': [],
@@ -103,14 +104,14 @@ class Rozklad():
         Expand subject abbreviation
         strip the ellipsis
         Return full subject name and group number
-        (or None for lecture) in a tuple
+        (or 0 for lecture) in a tuple
         '''
         from difflib import get_close_matches
         subject_string = subject_string.strip()
         candidates = get_close_matches(subject_string,
                                self.subject_abbreviations.values(), 2, 0.7)
         if len(candidates) == 1:
-            return (candidates[0], None)
+            return (candidates[0], 0)
         if len(candidates) > 1:
             print u', '.join(candidates), subject_string
             raise Exception(u'Too many subject candidates %s' % candidates)
@@ -193,6 +194,15 @@ class Rozklad():
                                 parsed = True
                 if lessons:
                     self.__day_lessons.setdefault(day, {})[lesson_time] = lessons
+
+    def __normalize_name(self, name):
+        try:
+            parts = name.split('.')
+            surname = parts[1].strip()
+            name = parts[0]
+            return '%s %s. ' % (surname, name)
+        except IndexError:
+            return name
     
     def __unicode__(self):
         lines = []
@@ -210,17 +220,47 @@ class Rozklad():
             lines.append(u'%s - %s' %(abbr, self.subject_abbreviations[abbr]))
         return u'\n'.join(lines)
 
+    def csv(self):
+        table = []
+        for day in self.day_names:
+            if self.__day_lessons.has_key(day):
+                for lesson_time in self.lesson_times:
+                    if self.__day_lessons[day].has_key(lesson_time):
+                        time = self.start_lesson_times[self.lesson_times.index(lesson_time)]
+                        for lesson in self.__day_lessons[day][lesson_time]:
+                            building, room, subject, group, weeks, position, lecturer = lesson
+                            table.append([
+                                day,
+                                time,
+                                '%s-%s' % (building, room),
+                                subject,
+                                unicode(group),
+                                self.__normalize_name(lecturer),
+                                weeks,
+                                ])
+        result_lines = []
+        for row in table:
+            result_lines.append(','.join(
+                ['"%s"' % p.replace('"', '""') for p in row]
+                ))
+        return '\n'.join(result_lines)
+
 
 def main():
     import codecs
     import traceback, sys
     rozklad_filename = sys.argv[1]
+    output_csv_filename = sys.argv[2]
     rozklad_file = codecs.open(
             rozklad_filename, 'r', 'utf-8')
     text = rozklad_file.read()
     try:
         rozklad = Rozklad(text)
-        print u'%s' % rozklad
+        #print u'%s' % rozklad
+        output_csv_file = codecs.open(
+                output_csv_filename, 'w', 'utf-8')
+        print >>output_csv_file, rozklad.csv()
+        output_csv_file.close()
     except Exception, exc:
         print exc
         print '>'*60
