@@ -22,9 +22,8 @@ class Rozklad():
         self.lesson_times = [u'8.30-9.50', u'10.00-11.20', u'11.40-13.00',
                              u'13.30-14.50', u'15.00-16.20', u'16.30-17.50',
                              u'18.00-19.20']
-        self.start_lesson_times = [
-                t.split('-')[0].replace('.', ':') for t in self.lesson_times]
-        self.start_lesson_times[0] = self.start_lesson_times[0].replace(u'8:30', u'08:30')
+        self.unified_lesson_times = [u'08:30-09:50', u'10:00-11:20', u'11:40-13:00', u'13:30-14:50',
+                u'15:00-16:20', u'16:30-17:50', u'18:00-19:20']
         self.__text_parts = {
                              'header': [],
                              'footer': [],
@@ -226,7 +225,7 @@ class Rozklad():
             if self.__day_lessons.has_key(day):
                 for lesson_time in self.lesson_times:
                     if self.__day_lessons[day].has_key(lesson_time):
-                        time = self.start_lesson_times[self.lesson_times.index(lesson_time)]
+                        time = self.unified_lesson_times[self.lesson_times.index(lesson_time)]
                         for lesson in self.__day_lessons[day][lesson_time]:
                             building, room, subject, group, weeks, position, lecturer = lesson
                             table.append([
